@@ -11,3 +11,358 @@ model Test {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   test      String
 }
+
+enum UserRole {
+  TEACHER
+  STUDENT
+}
+
+enum EnrollmentType {
+  STUDENT
+  VISITOR
+}
+
+enum LessonType {
+  SHORT_ANSWER
+  QUIZ
+  YES_NO
+}
+
+enum RecommendationType {
+  WEAKNESS_BASED
+  SIMILAR_STUDENTS
+  TEACHER_SUGGESTED
+  AI_PERSONALIZED
+}
+
+// ============================================
+// USER MODELS
+// ============================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  teacherClasses      Class[]                @relation("TeacherClasses")
+  enrollments         Enrollment[]
+  lessonAttempts      LessonAttempt[]
+  lessonCompletions   LessonCompletion[]
+  studentAttributes   StudentAttribute[]
+  userAchievements    UserAchievement[]
+  recommendations     LessonRecommendation[]
+  chatMessages        ChatMessage[]
+
+  @@map("users")
+}
+
+// ============================================
+// CLASS & ENROLLMENT MODELS
+// ============================================
+
+model Class {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  teacherId   String   @map("teacher_id")
+  inviteCode  String   @unique @map("invite_code") // e.g., "ABC123XYZ"
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  teacher           User               @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Cascade)
+  enrollments       Enrollment[]
+  subjects          Subject[]
+  studentAttributes StudentAttribute[]
+
+  @@index([teacherId])
+  @@index([inviteCode])
+  @@map("classes")
+}
+
+model Enrollment {
+  id             String         @id @default(uuid())
+  classId        String         @map("class_id")
+  userId         String         @map("user_id")
+  enrollmentType EnrollmentType @default(STUDENT) @map("enrollment_type")
+  joinedAt       DateTime       @default(now()) @map("joined_at")
+
+  // Relations
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, userId])
+  @@index([classId])
+  @@index([userId])
+  @@map("enrollments")
+}
+
+// ============================================
+// SUBJECT & COURSE MODELS
+// ============================================
+
+model Subject {
+  id          String   @id @default(uuid())
+  classId     String   @map("class_id")
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  class   Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  courses Course[]
+  tracks  Track[]
+
+  @@index([classId])
+  @@map("subjects")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  subjectId   String   @map("subject_id")
+  title       String
+  pdfUrl      String   @map("pdf_url") // S3/Cloudinary URL
+  pdfFilename String?  @map("pdf_filename")
+  fileSize    Int?     @map("file_size") // in bytes
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+
+  // Relations
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+  @@map("courses")
+}
+
+// ============================================
+// TRACK & LESSON MODELS
+// ============================================
+
+model Track {
+  id          String   @id @default(uuid())
+  subjectId   String   @map("subject_id")
+  name        String
+  description String?
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  subject Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([subjectId])
+  @@map("tracks")
+}
+
+model Lesson {
+  id               String     @id @default(uuid())
+  trackId          String     @map("track_id")
+  position         Int // Order in track (1, 2, 3... for Candy Crush display)
+  title            String
+  description      String?
+  lessonType       LessonType @map("lesson_type")
+  difficulty       Int // 1=easy, 2=medium, 3=hard
+  xpReward         Int        @default(10) @map("xp_reward")
+  content          Json // Stores questions, answers, options based on type
+  targetAttributes String[]   @map("target_attributes") // e.g., ['algebra', 'problem-solving']
+  
+  // pgvector embedding for semantic search and recommendations
+  contentEmbedding Unsupported("vector(384)")? @map("content_embedding")
+  
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  track           Track                  @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  attempts        LessonAttempt[]
+  completions     LessonCompletion[]
+  recommendations LessonRecommendation[]
+
+  @@unique([trackId, position])
+  @@index([trackId])
+  @@map("lessons")
+}
+
+// Example content JSON structures:
+// Quiz: {"question": "What is 2+2?", "options": ["2", "3", "4", "5"], "correctAnswer": 2}
+// Yes/No: {"question": "Is the earth flat?", "correctAnswer": false, "explanation": "..."}
+// Short Answer: {"question": "Explain photosynthesis", "sampleAnswers": ["..."], "keywords": ["chlorophyll", "sunlight"]}
+
+// ============================================
+// LESSON PROGRESS MODELS
+// ============================================
+
+model LessonAttempt {
+  id                   String   @id @default(uuid())
+  lessonId             String   @map("lesson_id")
+  userId               String   @map("user_id")
+  userAnswer           Json     @map("user_answer") // Flexible storage for different answer types
+  isCorrect            Boolean? @map("is_correct")
+  score                Int? // 0-100
+  timeSpentSeconds     Int?     @map("time_spent_seconds")
+  identifiedWeaknesses String[] @map("identified_weaknesses") // e.g., ['multiplication', 'fractions']
+  attemptedAt          DateTime @default(now()) @map("attempted_at")
+
+  // Relations
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lessonId])
+  @@index([userId, lessonId])
+  @@map("lesson_attempts")
+}
+
+model LessonCompletion {
+  id            String   @id @default(uuid())
+  lessonId      String   @map("lesson_id")
+  userId        String   @map("user_id")
+  completedAt   DateTime @default(now()) @map("completed_at")
+  finalScore    Int?     @map("final_score") // 0-100
+  attemptsCount Int      @default(1) @map("attempts_count")
+
+  // Relations
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, userId])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("lesson_completions")
+}
+
+// ============================================
+// STUDENT ATTRIBUTES & ANALYTICS
+// ============================================
+
+model StudentAttribute {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  classId          String   @map("class_id")
+  
+  // Weaknesses & Strengths (dynamically tracked)
+  weaknesses       Json     @default("[]") // [{"attribute": "algebra", "severity": 0.8, "lastSeen": "2025-01-15"}]
+  strengths        Json     @default("[]") // [{"attribute": "geometry", "confidence": 0.9}]
+  
+  // Overall stats
+  totalXp          Int      @default(0) @map("total_xp")
+  currentLevel     Int      @default(1) @map("current_level")
+  lessonsCompleted Int      @default(0) @map("lessons_completed")
+  currentStreak    Int      @default(0) @map("current_streak")
+  longestStreak    Int      @default(0) @map("longest_streak")
+  lastActivityDate DateTime? @map("last_activity_date")
+  
+  // pgvector embedding for student behavior similarity
+  behaviorEmbedding Unsupported("vector(384)")? @map("behavior_embedding")
+  
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classId])
+  @@index([userId])
+  @@index([classId])
+  @@map("student_attributes")
+}
+
+// ============================================
+// GAMIFICATION MODELS
+// ============================================
+
+model Achievement {
+  id             String   @id @default(uuid())
+  name           String
+  description    String?
+  iconUrl        String?  @map("icon_url")
+  xpRequirement  Int?     @map("xp_requirement")
+  criteria       Json // Flexible criteria definition
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  achievementId String   @map("achievement_id")
+  earnedAt      DateTime @default(now()) @map("earned_at")
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@map("user_achievements")
+}
+
+// ============================================
+// RECOMMENDATION MODELS
+// ============================================
+
+model LessonRecommendation {
+  id                 String             @id @default(uuid())
+  userId             String             @map("user_id")
+  lessonId           String             @map("lesson_id")
+  recommendationType RecommendationType @map("recommendation_type")
+  confidenceScore    Float?             @map("confidence_score") // 0.0 to 1.0
+  reasoning          String?
+  createdAt          DateTime           @default(now()) @map("created_at")
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lessonId])
+  @@index([userId, createdAt])
+  @@map("lesson_recommendations")
+}
+
+// ============================================
+// AI CHAT ASSISTANT MODELS
+// ============================================
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  classId   String?  @map("class_id") // Optional: context-aware chat per class
+  role      String // 'user' or 'assistant'
+  content   String
+  metadata  Json? // Store lesson context, references, etc.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("chat_messages")
+}
+
+// ============================================
+// SYSTEM MODELS (Optional)
+// ============================================
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
