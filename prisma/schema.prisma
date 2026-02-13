@@ -1,0 +1,13 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Test {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  test      String
+}
