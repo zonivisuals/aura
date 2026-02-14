@@ -1,4 +1,8 @@
-import { prismaClient as prisma} from "../prisma/prisma";
+// Load .env.local for standalone script execution (Next.js does this automatically for the app)
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
+import { prismaClient as prisma } from "../prisma/prisma";
 
 const mockTests = [
   { test: "First test entry" },

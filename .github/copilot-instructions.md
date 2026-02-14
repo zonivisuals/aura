@@ -89,6 +89,13 @@ Students join classes using invite codes, progress through visual "learning trac
 
 ## Technology Stack
 
+Always follow the best practices for each technology based on its official documentation.
+Supabase: https://supabase.com/docs
+NextJst: https://nextjs.org/docs
+Tailwind CSS: https://tailwindcss.com/docs
+Prisma: https://www.prisma.io/docs
+NextAuth: https://next-auth.js.org/getting-started
+
 ### **Frontend**
 ```
 Framework: React.js 18+ (Functional Components, Hooks)
@@ -598,3 +605,4 @@ function detectWeaknesses(lessonAttempt) {
 ---
 
 This context document provides everything needed to build the platform. Focus on clean design, solid architecture, and making the Track View absolutely stunning!
+
