@@ -124,7 +124,7 @@ async def recommend_tracks(user_id: UUID):
 
         # 3️⃣ Get popular tracks among them
         tracks = await conn.fetch("""
-            SELECT t.id, t.title, COUNT(*) as completions
+            SELECT t.id, t.name, COUNT(*) as completions
             FROM lesson_completions lc
             JOIN lessons l ON lc.lesson_id = l.id
             JOIN tracks t ON l.track_id = t.id
@@ -136,7 +136,7 @@ async def recommend_tracks(user_id: UUID):
                   JOIN tracks t2 ON l2.track_id = t2.id
                   WHERE lc2.user_id = $2
               )
-            GROUP BY t.id, t.title
+            GROUP BY t.id, t.name
             ORDER BY completions DESC
             LIMIT 5
         """, student_ids, user_id)
