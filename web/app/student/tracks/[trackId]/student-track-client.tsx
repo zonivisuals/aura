@@ -37,9 +37,89 @@ type TrackInfo = {
   description: string | null;
 };
 
+type Classmate = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  initials: string;
+  lastCompletedPosition: number; // 0 = hasn't started
+};
+
 /* ───── Constants ───── */
 
+// Soft hand-drawn colors for avatar circles
+const AVATAR_COLORS = [
+  "bg-blue-200 text-blue-800 border-blue-400",
+  "bg-amber-200 text-amber-800 border-amber-400",
+  "bg-rose-200 text-rose-800 border-rose-400",
+  "bg-emerald-200 text-emerald-800 border-emerald-400",
+  "bg-violet-200 text-violet-800 border-violet-400",
+  "bg-cyan-200 text-cyan-800 border-cyan-400",
+  "bg-orange-200 text-orange-800 border-orange-400",
+  "bg-teal-200 text-teal-800 border-teal-400",
+];
+
 const DIFFICULTY_LABELS = ["", "Easy", "Medium", "Hard"];
+
+/* ───── Level Node Component ───── */
+
+/* ───── Classmate Avatar Bubble ───── */
+
+function ClassmateAvatars({ classmates, lessonPosition }: { classmates: Classmate[]; lessonPosition: number }) {
+  // Get classmates whose last checkpoint is this lesson position
+  const here = classmates.filter((c) => c.lastCompletedPosition === lessonPosition);
+  if (here.length === 0) return null;
+
+  const maxVisible = 3;
+  const visible = here.slice(0, maxVisible);
+  const overflow = here.length - maxVisible;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.5, type: "spring", stiffness: 300, damping: 20 }}
+      className="absolute -right-2 -top-2 md:-right-3 md:-top-3 flex -space-x-2 z-30"
+    >
+      {visible.map((mate, i) => (
+        <div key={mate.id} className="group relative">
+          <div
+            className={cn(
+              "flex items-center justify-center w-7 h-7 md:w-8 md:h-8 rounded-full border-2",
+              "font-heading text-[10px] md:text-[11px] font-bold",
+              "shadow-[1px_1px_0px_0px_#2d2d2d] cursor-default",
+              "transition-transform duration-150 hover:scale-125 hover:z-40",
+              AVATAR_COLORS[i % AVATAR_COLORS.length],
+            )}
+          >
+            {mate.initials}
+          </div>
+          {/* Tooltip on hover */}
+          <div className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50">
+            <div
+              className="whitespace-nowrap px-2.5 py-1 text-[10px] font-heading font-bold bg-foreground text-background border-2 border-foreground shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]"
+              style={{ borderRadius: "25px 50px 25px 50px / 50px 25px 50px 25px" }}
+            >
+              {mate.firstName} {mate.lastName}
+            </div>
+          </div>
+        </div>
+      ))}
+      {overflow > 0 && (
+        <div
+          className={cn(
+            "flex items-center justify-center w-7 h-7 md:w-8 md:h-8 rounded-full border-2",
+            "font-heading text-[10px] md:text-[11px] font-bold",
+            "bg-muted text-muted-foreground border-muted-foreground/40",
+            "shadow-[1px_1px_0px_0px_#2d2d2d]",
+          )}
+        >
+          +{overflow}
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
 /* ───── Level Node Component ───── */
 
@@ -50,6 +130,7 @@ function LevelNode({
   unlocked,
   onClick,
   index,
+  classmates,
 }: {
   lesson: LessonItem;
   x: number;
@@ -57,6 +138,7 @@ function LevelNode({
   unlocked: boolean;
   onClick: () => void;
   index: number;
+  classmates: Classmate[];
 }) {
   const isLocked = !unlocked && !lesson.isCompleted;
   const isCompleted = lesson.isCompleted;
@@ -136,6 +218,8 @@ function LevelNode({
             ))}
           </div>
         )}
+        {/* Classmate avatars */}
+        <ClassmateAvatars classmates={classmates} lessonPosition={lesson.position} />
       </motion.button>
 
       {/* Label */}
@@ -180,6 +264,7 @@ export function StudentTrackClient({ trackId }: { trackId: string }) {
 
   const [track, setTrack] = useState<TrackInfo | null>(null);
   const [lessons, setLessons] = useState<LessonItem[]>([]);
+  const [classmates, setClassmates] = useState<Classmate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -190,6 +275,7 @@ export function StudentTrackClient({ trackId }: { trackId: string }) {
       if (res.ok) {
         setTrack(data.track);
         setLessons(data.lessons);
+        setClassmates(data.classmates ?? []);
       } else {
         setError(data.error || "Failed to load track");
       }
@@ -383,6 +469,7 @@ export function StudentTrackClient({ trackId }: { trackId: string }) {
             y={node.y}
             unlocked={node.unlocked}
             index={index}
+            classmates={classmates}
             onClick={() => router.push(`/student/lessons/${node.lesson.id}`)}
           />
         ))}

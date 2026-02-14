@@ -146,12 +146,16 @@ export async function GET(_request: Request, { params }: RouteParams) {
       orderBy: { position: "asc" },
     });
 
-    // For students, include their completion status
+    // For students, include their completion status + classmate positions
     if (!isTeacherOwner) {
+      const classId = track.subject.class.id;
+      const lessonIds = lessons.map((l) => l.id);
+
+      // Current user's completions
       const completions = await prismaClient.lessonCompletion.findMany({
         where: {
           userId: session.user.id,
-          lessonId: { in: lessons.map((l) => l.id) },
+          lessonId: { in: lessonIds },
         },
         select: { lessonId: true, finalScore: true },
       });
@@ -164,7 +168,53 @@ export async function GET(_request: Request, { params }: RouteParams) {
         finalScore: completionMap.get(lesson.id)?.finalScore ?? null,
       }));
 
-      return NextResponse.json({ lessons: lessonsWithProgress, track: { id: track.id, name: track.name, description: track.description } });
+      // ── Classmate positions on this track ──
+      // Get all enrolled students in the same class (excluding current user)
+      const enrollments = await prismaClient.enrollment.findMany({
+        where: { classId, userId: { not: session.user.id }, enrollmentType: "STUDENT" },
+        select: {
+          user: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
+
+      // Get all classmates' completions for lessons in this track
+      const classmateUserIds = enrollments.map((e) => e.user.id);
+      const classmateCompletions = classmateUserIds.length > 0
+        ? await prismaClient.lessonCompletion.findMany({
+            where: {
+              userId: { in: classmateUserIds },
+              lessonId: { in: lessonIds },
+            },
+            select: { userId: true, lessonId: true },
+          })
+        : [];
+
+      // Build a map: lessonId → position for quick lookup
+      const lessonPositionMap = new Map(lessons.map((l) => [l.id, l.position]));
+
+      // For each classmate, find their highest completed lesson position
+      const userHighestPosition = new Map<string, number>();
+      for (const c of classmateCompletions) {
+        const pos = lessonPositionMap.get(c.lessonId) ?? 0;
+        const current = userHighestPosition.get(c.userId) ?? 0;
+        if (pos > current) userHighestPosition.set(c.userId, pos);
+      }
+
+      // Build classmates array: each classmate with their checkpoint position
+      const classmates = enrollments.map((e) => ({
+        id: e.user.id,
+        firstName: e.user.firstName,
+        lastName: e.user.lastName,
+        initials: `${e.user.firstName.charAt(0)}${e.user.lastName.charAt(0)}`.toUpperCase(),
+        // Position of highest completed lesson, or 0 if none completed
+        lastCompletedPosition: userHighestPosition.get(e.user.id) ?? 0,
+      }));
+
+      return NextResponse.json({
+        lessons: lessonsWithProgress,
+        track: { id: track.id, name: track.name, description: track.description },
+        classmates,
+      });
     }
 
     return NextResponse.json({ lessons, track: { id: track.id, name: track.name, description: track.description } });

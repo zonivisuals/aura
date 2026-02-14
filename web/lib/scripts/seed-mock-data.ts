@@ -409,7 +409,7 @@ async function main() {
     const lessonData = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { content: true, lessonType: true } });
     const content = lessonData?.content as Record<string, unknown>;
 
-    let userAnswer: unknown;
+    let userAnswer: Record<string, unknown>;
     if (lessonData?.lessonType === "QUIZ") {
       userAnswer = { selectedOption: isCorrect ? content.correctAnswer : 0 };
     } else if (lessonData?.lessonType === "YES_NO") {
@@ -423,7 +423,7 @@ async function main() {
         id: uuid(),
         lessonId,
         userId,
-        userAnswer,
+        userAnswer: userAnswer as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         isCorrect,
         score,
         timeSpentSeconds: 30 + Math.floor(Math.random() * 180),
