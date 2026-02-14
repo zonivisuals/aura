@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import {
   BarChart,
@@ -155,31 +156,48 @@ export function TeacherAnalyticsClient({ classId }: { classId: string }) {
 
       {/* At-Risk Alert */}
       {atRiskStudents.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-amber-800">
-            ⚠️ At-Risk Students ({atRiskStudents.length})
-          </h3>
-          <div className="space-y-2">
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 space-y-4">
+          <div className="flex items-center gap-2 text-destructive">
+            <h3 className="text-lg font-semibold">
+              ⚠️ Students Needing Attention ({atRiskStudents.length})
+            </h3>
+          </div>
+          
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {atRiskStudents.map((s) => (
-              <div
+              <Link
                 key={s.id}
-                className="flex items-center justify-between text-sm"
+                href={`/teacher/classes/${classId}/analytics/student/${s.id}`}
+                className="block group"
               >
-                <div>
-                  <span className="font-medium text-amber-900">
-                    {s.firstName} {s.lastName}
-                  </span>
-                  <span className="ml-2 text-xs text-amber-700">
-                    {s.risks.join(" · ")}
-                  </span>
+                <div className="bg-background rounded-lg border p-4 shadow-sm transition-all hover:shadow-md hover:border-destructive/40 group-hover:scale-[1.02]">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium truncate group-hover:text-primary transition-colors">
+                      {s.firstName} {s.lastName}
+                    </div>
+                    <Badge variant="outline" className="text-[10px] h-5 bg-background">
+                      High Risk
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {s.risks.map((risk, i) => (
+                      <Badge 
+                        key={i} 
+                        variant="destructive" 
+                        className="text-[10px] px-1.5 py-0.5 h-auto font-normal opacity-90"
+                      >
+                        {risk}
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-muted-foreground flex items-center justify-between">
+                    <span>Last active: {s.lastActivityDate ? new Date(s.lastActivityDate).toLocaleDateString() : 'Never'}</span>
+                    <span className="text-primary group-hover:underline">View Details →</span>
+                  </div>
                 </div>
-                <Link
-                  href={`/teacher/classes/${classId}/analytics/student/${s.id}`}
-                  className="text-xs text-amber-700 hover:text-amber-900 hover:underline"
-                >
-                  View →
-                </Link>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -188,36 +206,50 @@ export function TeacherAnalyticsClient({ classId }: { classId: string }) {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Daily Activity */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Activity (Last 14 Days)</h3>
-          <div className="rounded-lg border p-4 bg-card">
-            <ResponsiveContainer width="100%" height={220}>
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold tracking-tight">Activity (Last 14 Days)</h3>
+          <div className="rounded-xl border shadow-sm p-6 bg-white">
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={dailyActivity}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 12, fill: "#6B7280" }}
                   tickFormatter={(v: string) => v.slice(5)}
+                  axisLine={false}
+                  tickLine={false}
+                  padding={{ left: 10, right: 10 }}
                 />
-                <YAxis tick={{ fontSize: 10 }} />
+                <YAxis 
+                  tick={{ fontSize: 12, fill: "#6B7280" }} 
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip
-                  contentStyle={{ fontSize: 12 }}
+                  contentStyle={{ 
+                    borderRadius: "8px", 
+                    border: "none", 
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    fontSize: "12px"
+                  }}
                   labelFormatter={(v) => String(v)}
                 />
                 <Line
                   type="monotone"
                   dataKey="attempts"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
+                  stroke="var(--chart-1)"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "var(--chart-1)", strokeWidth: 2, stroke: "#fff" }}
+                  activeDot={{ r: 6 }}
                   name="Attempts"
                 />
                 <Line
                   type="monotone"
                   dataKey="completions"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
+                  stroke="var(--chart-2)"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "var(--chart-2)", strokeWidth: 2, stroke: "#fff" }}
+                  activeDot={{ r: 6 }}
                   name="Completions"
                 />
               </LineChart>
@@ -226,16 +258,39 @@ export function TeacherAnalyticsClient({ classId }: { classId: string }) {
         </div>
 
         {/* Score Distribution */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Score Distribution</h3>
-          <div className="rounded-lg border p-4 bg-card">
-            <ResponsiveContainer width="100%" height={220}>
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold tracking-tight">Score Distribution</h3>
+          <div className="rounded-xl border shadow-sm p-6 bg-white">
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart data={scoreDistribution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="range" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ fontSize: 12 }} />
-                <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Attempts" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis 
+                  dataKey="range" 
+                  tick={{ fontSize: 12, fill: "#6B7280" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12, fill: "#6B7280" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    borderRadius: "8px", 
+                    border: "none", 
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    fontSize: "12px"
+                  }}
+                  cursor={{ fill: 'transparent' }} 
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="var(--chart-4)" 
+                  radius={[6, 6, 0, 0]} 
+                  name="Attempts"
+                  barSize={40} 
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -243,103 +298,115 @@ export function TeacherAnalyticsClient({ classId }: { classId: string }) {
       </div>
 
       {/* Student Table */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium">
-          Students ({students.length})
-        </h3>
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th
-                  className="text-left px-4 py-2.5 font-medium cursor-pointer hover:text-foreground"
-                  onClick={() => toggleSort("name")}
-                >
-                  Student{arrow("name")}
-                </th>
-                <th
-                  className="text-center px-3 py-2.5 font-medium cursor-pointer hover:text-foreground"
-                  onClick={() => toggleSort("xp")}
-                >
-                  XP{arrow("xp")}
-                </th>
-                <th className="text-center px-3 py-2.5 font-medium hidden sm:table-cell">
-                  Lvl
-                </th>
-                <th
-                  className="text-center px-3 py-2.5 font-medium cursor-pointer hover:text-foreground"
-                  onClick={() => toggleSort("score")}
-                >
-                  Avg{arrow("score")}
-                </th>
-                <th
-                  className="text-center px-3 py-2.5 font-medium cursor-pointer hover:text-foreground hidden sm:table-cell"
-                  onClick={() => toggleSort("completion")}
-                >
-                  Done{arrow("completion")}
-                </th>
-                <th className="text-center px-3 py-2.5 font-medium hidden md:table-cell">
-                  Streak
-                </th>
-                <th className="px-3 py-2.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((s) => (
-                <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-4 py-2.5">
-                    <p className="font-medium truncate max-w-[180px]">
-                      {s.firstName} {s.lastName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{s.email}</p>
-                  </td>
-                  <td className="text-center px-3 py-2.5 font-medium">
-                    {s.totalXp.toLocaleString()}
-                  </td>
-                  <td className="text-center px-3 py-2.5 hidden sm:table-cell">
-                    {s.level}
-                  </td>
-                  <td className="text-center px-3 py-2.5">
-                    <span
-                      className={
-                        s.avgScore < 50
-                          ? "text-red-600"
-                          : s.avgScore < 70
-                          ? "text-amber-600"
-                          : "text-green-600"
-                      }
-                    >
-                      {s.avgScore}%
-                    </span>
-                  </td>
-                  <td className="text-center px-3 py-2.5 hidden sm:table-cell">
-                    {s.completionPercent}%
-                  </td>
-                  <td className="text-center px-3 py-2.5 hidden md:table-cell">
-                    {s.currentStreak > 0 ? `🔥 ${s.currentStreak}d` : "—"}
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <Link
-                      href={`/teacher/classes/${classId}/analytics/student/${s.id}`}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      Details →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {sorted.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-muted-foreground"
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold tracking-tight">
+            Student Roster ({students.length})
+          </h3>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSortBy("name")}>
+              Reset Sort
+            </Button>
+          </div>
+        </div>
+        
+        <div className="rounded-xl border shadow-sm overflow-hidden bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/30">
+                <tr className="border-b">
+                  <th
+                    className="text-left px-6 py-4 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors uppercase text-xs tracking-wider"
+                    onClick={() => handleSort("name")}
                   >
-                    No students enrolled yet.
-                  </td>
+                    Student {sortBy === "name" && (sortDir === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th
+                    className="text-center px-4 py-4 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors uppercase text-xs tracking-wider"
+                    onClick={() => handleSort("xp")}
+                  >
+                    XP {sortBy === "xp" && (sortDir === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th
+                    className="text-center px-4 py-4 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors uppercase text-xs tracking-wider"
+                    onClick={() => handleSort("score")}
+                  >
+                    Avg Score {sortBy === "score" && (sortDir === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th
+                    className="text-center px-4 py-4 font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors uppercase text-xs tracking-wider"
+                    onClick={() => handleSort("completion")}
+                  >
+                    Completion {sortBy === "completion" && (sortDir === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th className="text-center px-4 py-4 font-semibold text-muted-foreground uppercase text-xs tracking-wider">
+                    Risk Level
+                  </th>
+                  <th className="px-4 py-4" />
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y">
+                {sortedStudents.map((s) => {
+                  const isAtRisk = atRiskStudents.some(r => r.id === s.id);
+                  return (
+                    <tr key={s.id} className="hover:bg-muted/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                            {s.firstName[0]}{s.lastName[0]}
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground">
+                              {s.firstName} {s.lastName}
+                            </div>
+                            <div className="text-xs text-muted-foreground">{s.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="text-center px-4 py-4 font-medium text-foreground">
+                        <Badge variant="secondary" className="font-mono">
+                          {s.totalXp.toLocaleString()} XP
+                        </Badge>
+                      </td>
+                      <td className="text-center px-4 py-4">
+                        <Badge 
+                          variant={s.avgScore >= 80 ? "success" : s.avgScore >= 60 ? "warning" : "destructive"}
+                          className="font-bold"
+                        >
+                          {s.avgScore.toFixed(1)}%
+                        </Badge>
+                      </td>
+                      <td className="text-center px-4 py-4">
+                        <div className="w-full max-w-[100px] mx-auto h-2 bg-secondary rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary rounded-full" 
+                            style={{ width: `${s.completionPercent}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {s.completionPercent.toFixed(0)}%
+                        </div>
+                      </td>
+                      <td className="text-center px-4 py-4">
+                        {isAtRisk ? (
+                          <Badge variant="destructive" className="animate-pulse">At Risk</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-muted-foreground">On Track</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/teacher/classes/${classId}/analytics/student/${s.id}`}>
+                            Details
+                          </Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

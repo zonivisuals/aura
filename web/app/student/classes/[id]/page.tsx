@@ -1,6 +1,8 @@
 import { getCurrentUser } from "@/lib/auth/rbac";
 import { redirect } from "next/navigation";
 import { StudentClassDetailClient } from "./class-detail-client";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default async function StudentClassDetailPage({
   params,
@@ -15,29 +17,14 @@ export default async function StudentClassDetailPage({
   const { id } = await params;
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center gap-3">
-              <a
-                href="/student"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ← Back
-              </a>
-              <h1 className="text-xl font-semibold">Class</h1>
-            </div>
-            <span className="text-sm text-muted-foreground">
-              {user.prismaUser.firstName} {user.prismaUser.lastName}
-            </span>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <StudentClassDetailClient classId={id} />
-      </main>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link href="/student" className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight">Class Analysis</h1>
+      </div>
+      <StudentClassDetailClient classId={id} />
     </div>
   );
 }

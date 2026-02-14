@@ -8,6 +8,7 @@
     "seed": "tsx lib/scripts/seed.ts"
   },
   "dependencies": {
+    "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
     "@radix-ui/react-checkbox": "^1.3.1",
@@ -18,6 +19,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
+    "framer-motion": "^12.34.0",
     "lucide-react": "^0.511.0",
     "next": "latest",
     "next-auth": "^5.0.0-beta.30",
@@ -26,6 +28,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^3.7.0",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {

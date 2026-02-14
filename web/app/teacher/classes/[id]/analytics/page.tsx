@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { TeacherAnalyticsClient } from "./analytics-client";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default async function TeacherAnalyticsPage({
   params,
@@ -9,8 +11,14 @@ export default async function TeacherAnalyticsPage({
   const { id } = await params;
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link href={`/teacher/classes/${id}`} className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight">Class Analytics</h1>
+      </div>
+      <main className="max-w-6xl mx-auto py-4">
         <Suspense
           fallback={
             <div className="space-y-4">
