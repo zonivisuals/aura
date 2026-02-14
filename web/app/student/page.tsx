@@ -18,6 +18,12 @@ export default async function StudentDashboard() {
             <h1 className="text-xl font-semibold">Student Dashboard</h1>
             <div className="flex items-center gap-4">
               <Link
+                href="/student/performance"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Performance
+              </Link>
+              <Link
                 href="/student/profile"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >

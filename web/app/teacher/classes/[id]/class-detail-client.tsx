@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 // ───── Types ─────
 
@@ -548,12 +549,19 @@ export function ClassDetailClient({ classId }: { classId: string }) {
         {classInfo.description && (
           <p className="text-muted-foreground mt-1">{classInfo.description}</p>
         )}
-        <p className="text-xs text-muted-foreground mt-2">
-          Invite code:{" "}
-          <code className="bg-muted px-2 py-0.5 rounded font-mono tracking-wider">
-            {classInfo.inviteCode}
-          </code>
-        </p>
+        <div className="flex items-center gap-3 mt-2">
+          <p className="text-xs text-muted-foreground">
+            Invite code:{" "}
+            <code className="bg-muted px-2 py-0.5 rounded font-mono tracking-wider">
+              {classInfo.inviteCode}
+            </code>
+          </p>
+          <Link href={`/teacher/classes/${classId}/analytics`}>
+            <Button variant="outline" size="sm">
+              Analytics
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Subjects Section */}
