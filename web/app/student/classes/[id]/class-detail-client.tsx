@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 // ───── Types ─────
 
@@ -20,6 +21,15 @@ type CourseItem = {
   pdfFilename: string | null;
   fileSize: number | null;
   uploadedAt: string;
+};
+
+type TrackItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  isPublished: boolean;
+  createdAt: string;
+  _count: { lessons: number };
 };
 
 type ClassInfo = {
@@ -52,8 +62,11 @@ export function StudentClassDetailClient({ classId }: { classId: string }) {
 
   // Expanded subject → courses
   const [expandedSubjectId, setExpandedSubjectId] = useState<string | null>(null);
+  const [expandedPanel, setExpandedPanel] = useState<"courses" | "tracks" | null>(null);
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
+  const [tracks, setTracks] = useState<TrackItem[]>([]);
+  const [loadingTracks, setLoadingTracks] = useState(false);
 
   // ───── Fetch class info ─────
 
@@ -105,14 +118,30 @@ export function StudentClassDetailClient({ classId }: { classId: string }) {
     }
   }, []);
 
-  const toggleSubject = (subjectId: string) => {
-    if (expandedSubjectId === subjectId) {
+  const togglePanel = (subjectId: string, panel: "courses" | "tracks") => {
+    if (expandedSubjectId === subjectId && expandedPanel === panel) {
       setExpandedSubjectId(null);
+      setExpandedPanel(null);
       return;
     }
     setExpandedSubjectId(subjectId);
-    fetchCourses(subjectId);
+    setExpandedPanel(panel);
+    if (panel === "courses") fetchCourses(subjectId);
+    if (panel === "tracks") fetchTracks(subjectId);
   };
+
+  const fetchTracks = useCallback(async (subjectId: string) => {
+    setLoadingTracks(true);
+    try {
+      const res = await fetch(`/api/subjects/${subjectId}/tracks`);
+      const data = await res.json();
+      if (res.ok) setTracks(data.tracks);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingTracks(false);
+    }
+  }, []);
 
   // ───── Render ─────
 
@@ -181,19 +210,26 @@ export function StudentClassDetailClient({ classId }: { classId: string }) {
                       {subject._count.tracks !== 1 ? "s" : ""}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleSubject(subject.id)}
-                  >
-                    {expandedSubjectId === subject.id
-                      ? "Hide"
-                      : "View Courses"}
-                  </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant={expandedSubjectId === subject.id && expandedPanel === "courses" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => togglePanel(subject.id, "courses")}
+                    >
+                      Courses
+                    </Button>
+                    <Button
+                      variant={expandedSubjectId === subject.id && expandedPanel === "tracks" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => togglePanel(subject.id, "tracks")}
+                    >
+                      Tracks
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Expanded: Courses Panel */}
-                {expandedSubjectId === subject.id && (
+                {expandedSubjectId === subject.id && expandedPanel === "courses" && (
                   <div className="border-t px-4 py-4 bg-muted/30 space-y-3">
                     {loadingCourses ? (
                       <p className="text-sm text-muted-foreground">
@@ -233,6 +269,49 @@ export function StudentClassDetailClient({ classId }: { classId: string }) {
                             >
                               Open PDF
                             </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Expanded: Tracks Panel */}
+                {expandedSubjectId === subject.id && expandedPanel === "tracks" && (
+                  <div className="border-t px-4 py-4 bg-muted/30 space-y-3">
+                    {loadingTracks ? (
+                      <p className="text-sm text-muted-foreground">
+                        Loading tracks...
+                      </p>
+                    ) : tracks.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No learning tracks available yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Learning Tracks ({tracks.length})
+                        </p>
+                        {tracks.map((track) => (
+                          <div
+                            key={track.id}
+                            className="flex items-center justify-between py-2 px-3 rounded-md border bg-card"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">
+                                {track.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {track._count.lessons} lesson
+                                {track._count.lessons !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                            <Link
+                              href={`/student/tracks/${track.id}`}
+                              className="shrink-0 ml-3 inline-flex items-center justify-center rounded-md text-sm font-medium h-8 px-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                            >
+                              Open Track
+                            </Link>
                           </div>
                         ))}
                       </div>
