@@ -89,6 +89,17 @@ export function TrackLessonsClient({ trackId }: { trackId: string }) {
   const [expandedLessonId, setExpandedLessonId] = useState<string | null>(null);
   const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
 
+  // AI Generation
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiFile, setAiFile] = useState<File | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiQuestions, setAiQuestions] = useState<
+    { question: string; options: string[]; correctAnswer: number }[]
+  >([]);
+  const [aiSelected, setAiSelected] = useState<Set<number>>(new Set());
+  const [aiBulkCreating, setAiBulkCreating] = useState(false);
+
   // ───── Fetch ─────
 
   const fetchLessons = useCallback(async () => {
@@ -228,6 +239,100 @@ export function TrackLessonsClient({ trackId }: { trackId: string }) {
     }
   };
 
+  // ───── AI Quiz Generation ─────
+
+  const handleAIGenerate = async () => {
+    if (!aiFile) return;
+    setAiGenerating(true);
+    setAiError(null);
+    setAiQuestions([]);
+    setAiSelected(new Set());
+
+    try {
+      const formData = new FormData();
+      formData.append("file", aiFile);
+
+      const res = await fetch("/api/ai/generate-quiz", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAiError(data.error || "Failed to generate quiz");
+        return;
+      }
+
+      const questions = data.questions ?? [];
+      if (questions.length === 0) {
+        setAiError("No questions were generated. Try a different PDF.");
+        return;
+      }
+
+      setAiQuestions(questions);
+      // Select all by default
+      setAiSelected(new Set(questions.map((_: unknown, i: number) => i)));
+    } catch {
+      setAiError("Could not reach the AI service. Make sure the backend is running.");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleAIBulkCreate = async () => {
+    const selectedQuestions = aiQuestions.filter((_, i) => aiSelected.has(i));
+    if (selectedQuestions.length === 0) return;
+
+    setAiBulkCreating(true);
+    setAiError(null);
+
+    let created = 0;
+    for (const q of selectedQuestions) {
+      try {
+        const res = await fetch(`/api/tracks/${trackId}/lessons`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: q.question.slice(0, 60) + (q.question.length > 60 ? "…" : ""),
+            description: null,
+            lessonType: "QUIZ",
+            difficulty: 1,
+            content: {
+              question: q.question,
+              options: q.options,
+              correctAnswer: q.correctAnswer,
+            },
+            targetAttributes: [],
+          }),
+        });
+        if (res.ok) created++;
+      } catch {
+        // continue with the rest
+      }
+    }
+
+    if (created > 0) {
+      fetchLessons();
+      setAiQuestions([]);
+      setAiSelected(new Set());
+      setAiFile(null);
+      setShowAIPanel(false);
+    } else {
+      setAiError("Failed to create lessons. Please try again.");
+    }
+
+    setAiBulkCreating(false);
+  };
+
+  const toggleAISelect = (index: number) => {
+    setAiSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
   // ───── Render helpers ─────
 
   const renderContentPreview = (lesson: LessonItem) => {
@@ -323,21 +428,160 @@ export function TrackLessonsClient({ trackId }: { trackId: string }) {
       {/* Actions */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Lessons</h3>
-        <Button
-          onClick={() => {
-            if (showForm) {
-              resetForm();
-              setShowForm(false);
-            } else {
-              setShowForm(true);
-            }
-          }}
-          variant={showForm ? "outline" : "default"}
-          size="sm"
-        >
-          {showForm ? "Cancel" : "Add Lesson"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              setShowAIPanel(!showAIPanel);
+              if (showForm) { resetForm(); setShowForm(false); }
+            }}
+            variant={showAIPanel ? "outline" : "default"}
+            size="sm"
+            className={!showAIPanel ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
+          >
+            {showAIPanel ? "Cancel AI" : "✨ Generate with AI"}
+          </Button>
+          <Button
+            onClick={() => {
+              if (showForm) {
+                resetForm();
+                setShowForm(false);
+              } else {
+                setShowForm(true);
+                if (showAIPanel) setShowAIPanel(false);
+              }
+            }}
+            variant={showForm ? "outline" : "default"}
+            size="sm"
+          >
+            {showForm ? "Cancel" : "Add Lesson"}
+          </Button>
+        </div>
       </div>
+
+      {/* AI Generation Panel */}
+      {showAIPanel && (
+        <div className="rounded-lg border-2 border-purple-200 bg-purple-50/50 p-5 space-y-4">
+          <div>
+            <h4 className="font-medium text-purple-900">Generate Lessons from PDF</h4>
+            <p className="text-sm text-purple-700 mt-1">
+              Upload a course PDF and AI will generate multiple-choice questions automatically.
+            </p>
+          </div>
+
+          {/* File upload & generate */}
+          {aiQuestions.length === 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    setAiFile(e.target.files?.[0] ?? null);
+                    setAiError(null);
+                  }}
+                  className="text-sm file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border file:border-purple-300 file:bg-purple-100 file:text-purple-700 file:text-sm file:font-medium hover:file:bg-purple-200 file:cursor-pointer"
+                />
+                <Button
+                  onClick={handleAIGenerate}
+                  disabled={!aiFile || aiGenerating}
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {aiGenerating ? "Generating…" : "Generate"}
+                </Button>
+              </div>
+              {aiGenerating && (
+                <p className="text-sm text-purple-600 animate-pulse">
+                  🤖 AI is reading your PDF and generating questions… this may take a moment.
+                </p>
+              )}
+            </div>
+          )}
+
+          {aiError && (
+            <p className="text-sm text-red-600">{aiError}</p>
+          )}
+
+          {/* Generated questions review */}
+          {aiQuestions.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-purple-900">
+                  {aiQuestions.length} questions generated — review &amp; select which to add:
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (aiSelected.size === aiQuestions.length) setAiSelected(new Set());
+                      else setAiSelected(new Set(aiQuestions.map((_, i) => i)));
+                    }}
+                    className="text-xs text-purple-600 hover:text-purple-800 underline"
+                  >
+                    {aiSelected.size === aiQuestions.length ? "Deselect All" : "Select All"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                {aiQuestions.map((q, i) => (
+                  <div
+                    key={i}
+                    className={`rounded-md border p-3 cursor-pointer transition-colors ${
+                      aiSelected.has(i)
+                        ? "border-purple-400 bg-white"
+                        : "border-gray-200 bg-gray-50 opacity-60"
+                    }`}
+                    onClick={() => toggleAISelect(i)}
+                  >
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={aiSelected.has(i)}
+                        onChange={() => toggleAISelect(i)}
+                        className="mt-1 accent-purple-600"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex-1 min-w-0 text-sm">
+                        <p className="font-medium">{q.question}</p>
+                        <div className="mt-1 space-y-0.5 ml-2">
+                          {q.options.map((opt, j) => (
+                            <p
+                              key={j}
+                              className={j === q.correctAnswer ? "text-green-700 font-medium" : "text-muted-foreground"}
+                            >
+                              {j === q.correctAnswer ? "✓" : "○"} {opt}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  onClick={handleAIBulkCreate}
+                  disabled={aiSelected.size === 0 || aiBulkCreating}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {aiBulkCreating
+                    ? "Creating…"
+                    : `Add ${aiSelected.size} Lesson${aiSelected.size !== 1 ? "s" : ""} to Track`}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setAiQuestions([]); setAiSelected(new Set()); }}
+                >
+                  Discard
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Create Lesson Form */}
       {showForm && (

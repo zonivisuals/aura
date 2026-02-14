@@ -74,6 +74,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       },
       content,
       trackId: lesson.trackId,
+      subjectName: lesson.track.subject.name,
     });
   } catch (err) {
     console.error("Get lesson error:", err);

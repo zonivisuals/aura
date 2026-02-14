@@ -51,6 +51,19 @@ type AttemptResult = {
   explanation: string | null;
 };
 
+type TutorQuestion = {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  difficulty: string;
+};
+
+type TutorQuiz = {
+  title: string;
+  questions: TutorQuestion[];
+};
+
 const DIFFICULTY_LABELS = ["", "Easy", "Medium", "Hard"];
 
 // ───── Component ─────
@@ -59,6 +72,7 @@ export function LessonAttemptClient({ lessonId }: { lessonId: string }) {
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [content, setContent] = useState<LessonContent | null>(null);
   const [trackId, setTrackId] = useState<string | null>(null);
+  const [subjectName, setSubjectName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +84,14 @@ export function LessonAttemptClient({ lessonId }: { lessonId: string }) {
   // Submission
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<AttemptResult | null>(null);
+
+  // AI Tutor
+  const [tutorLoading, setTutorLoading] = useState(false);
+  const [tutorQuiz, setTutorQuiz] = useState<TutorQuiz | null>(null);
+  const [tutorError, setTutorError] = useState<string | null>(null);
+  const [tutorCurrentQ, setTutorCurrentQ] = useState(0);
+  const [tutorSelected, setTutorSelected] = useState<number | null>(null);
+  const [tutorRevealed, setTutorRevealed] = useState(false);
 
   // ───── Fetch lesson ─────
 
@@ -102,6 +124,7 @@ export function LessonAttemptClient({ lessonId }: { lessonId: string }) {
         setLesson(data.lesson);
         setContent(data.content);
         setTrackId(data.trackId);
+        setSubjectName(data.subjectName ?? null);
       } catch {
         setError("Something went wrong");
       } finally {
@@ -158,6 +181,47 @@ export function LessonAttemptClient({ lessonId }: { lessonId: string }) {
     setYesNoAnswer(null);
     setShortAnswer("");
     setError(null);
+    setTutorQuiz(null);
+    setTutorError(null);
+    setTutorCurrentQ(0);
+    setTutorSelected(null);
+    setTutorRevealed(false);
+  };
+
+  // ───── AI Tutor ─────
+
+  const handleAskTutor = async () => {
+    if (!subjectName) return;
+    setTutorLoading(true);
+    setTutorError(null);
+    setTutorQuiz(null);
+    setTutorCurrentQ(0);
+    setTutorSelected(null);
+    setTutorRevealed(false);
+
+    try {
+      const res = await fetch("/api/ai/tutor-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: subjectName }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setTutorError(data.error || "Could not generate practice quiz.");
+        return;
+      }
+
+      if (data.questions && data.questions.length > 0) {
+        setTutorQuiz(data as TutorQuiz);
+      } else {
+        setTutorError("No practice questions could be generated.");
+      }
+    } catch {
+      setTutorError("AI tutor service is unavailable. Try again later.");
+    } finally {
+      setTutorLoading(false);
+    }
   };
 
   // ───── Render ─────
@@ -271,6 +335,117 @@ export function LessonAttemptClient({ lessonId }: { lessonId: string }) {
           <div className="rounded-lg border p-4 bg-card">
             <p className="text-sm font-medium mb-1">Explanation</p>
             <p className="text-sm text-muted-foreground">{explanation}</p>
+          </div>
+        )}
+
+        {/* AI Tutor — only shown on incorrect answers */}
+        {!attempt.isCorrect && subjectName && (
+          <div className="space-y-3">
+            {!tutorQuiz && !tutorLoading && (
+              <Button
+                onClick={handleAskTutor}
+                variant="outline"
+                className="w-full border-purple-300 text-purple-700 hover:bg-purple-50"
+              >
+                ✨ Ask AI Tutor for Practice
+              </Button>
+            )}
+            {tutorLoading && (
+              <div className="rounded-lg border-2 border-purple-200 bg-purple-50/50 p-5 text-center">
+                <p className="text-sm text-purple-600 animate-pulse">
+                  🤖 AI Tutor is preparing a personalized practice quiz for you…
+                </p>
+              </div>
+            )}
+            {tutorError && (
+              <p className="text-sm text-red-500 text-center">{tutorError}</p>
+            )}
+            {tutorQuiz && tutorQuiz.questions.length > 0 && (
+              <div className="rounded-lg border-2 border-purple-200 bg-purple-50/50 p-5 space-y-4">
+                <div>
+                  <h4 className="font-medium text-purple-900">
+                    ✨ AI Practice: {tutorQuiz.title}
+                  </h4>
+                  <p className="text-xs text-purple-600 mt-0.5">
+                    Question {tutorCurrentQ + 1} of {tutorQuiz.questions.length}
+                    {" · "}
+                    {tutorQuiz.questions[tutorCurrentQ].difficulty}
+                  </p>
+                </div>
+
+                <p className="font-medium text-sm">
+                  {tutorQuiz.questions[tutorCurrentQ].question}
+                </p>
+
+                <div className="space-y-2">
+                  {tutorQuiz.questions[tutorCurrentQ].options.map((opt, i) => {
+                    const isCorrect = i === tutorQuiz.questions[tutorCurrentQ].correctIndex;
+                    const isSelected = tutorSelected === i;
+
+                    let style = "hover:bg-muted/50";
+                    if (tutorRevealed) {
+                      if (isCorrect) style = "border-green-500 bg-green-50 text-green-700";
+                      else if (isSelected && !isCorrect) style = "border-red-300 bg-red-50 text-red-600";
+                      else style = "opacity-50";
+                    } else if (isSelected) {
+                      style = "border-purple-500 bg-purple-50 text-purple-700";
+                    }
+
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        disabled={tutorRevealed}
+                        onClick={() => setTutorSelected(i)}
+                        className={`w-full text-left px-4 py-2.5 rounded-md border text-sm transition-colors ${style}`}
+                      >
+                        <span className="font-medium mr-2">
+                          {String.fromCharCode(65 + i)}.
+                        </span>
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {!tutorRevealed ? (
+                  <Button
+                    size="sm"
+                    disabled={tutorSelected === null}
+                    onClick={() => setTutorRevealed(true)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    Check Answer
+                  </Button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="rounded-md border p-3 bg-white text-sm">
+                      <p className="font-medium text-purple-900 mb-1">Explanation</p>
+                      <p className="text-muted-foreground">
+                        {tutorQuiz.questions[tutorCurrentQ].explanation}
+                      </p>
+                    </div>
+                    {tutorCurrentQ < tutorQuiz.questions.length - 1 ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setTutorCurrentQ((prev) => prev + 1);
+                          setTutorSelected(null);
+                          setTutorRevealed(false);
+                        }}
+                      >
+                        Next Question →
+                      </Button>
+                    ) : (
+                      <p className="text-sm text-purple-700 font-medium text-center">
+                        🎉 Practice complete! Try the lesson again when you&apos;re ready.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

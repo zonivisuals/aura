@@ -28,6 +28,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "Aura",
   description: "Smart education",
+  icons: {
+    icon: './favicon.png',
+  }
 };
 
 export default function RootLayout({
@@ -37,6 +40,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${kalam.variable} ${patrickHand.variable}`}>
+      <head>
+        <link rel="icon" href="/favicon.png" sizes="any" />
+        <link
+          rel="icon"
+          href="/icon?<generated>"
+          type="image/<generated>"
+          sizes="<generated>"
+        />
+      </head>
       <body className="font-body antialiased bg-background text-foreground bg-[radial-gradient(#e5e0d8_1px,transparent_1px)] [background-size:24px_24px]">
         <ThemeProvider
           attribute="class"

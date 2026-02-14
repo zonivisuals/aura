@@ -18,6 +18,12 @@ type ClassItem = {
   _count: { enrollments: number };
 };
 
+type RecommendedTrack = {
+  id: string;
+  name: string;
+  completions: number;
+};
+
 export function StudentClassesClient() {
   const router = useRouter();
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -26,6 +32,10 @@ export function StudentClassesClient() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // AI Recommendations
+  const [recommendations, setRecommendations] = useState<RecommendedTrack[]>([]);
+  const [recsLoading, setRecsLoading] = useState(true);
 
   const fetchClasses = useCallback(async () => {
     try {
@@ -42,6 +52,24 @@ export function StudentClassesClient() {
   useEffect(() => {
     fetchClasses();
   }, [fetchClasses]);
+
+  // Fetch AI recommendations
+  useEffect(() => {
+    async function fetchRecs() {
+      try {
+        const res = await fetch("/api/ai/recommendations");
+        const data = await res.json();
+        if (res.ok && data.recommendations) {
+          setRecommendations(data.recommendations);
+        }
+      } catch {
+        // silently ignore — recommendations are non-critical
+      } finally {
+        setRecsLoading(false);
+      }
+    }
+    fetchRecs();
+  }, []);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,6 +179,37 @@ export function StudentClassesClient() {
           </div>
         )}
       </div>
+
+      {/* AI Recommendations */}
+      {!recsLoading && recommendations.length > 0 && (
+        <div>
+          <h2 className="text-lg font-medium mb-3">✨ Recommended for You</h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            Based on what your classmates are learning
+          </p>
+          <div className="space-y-2">
+            {recommendations.map((rec) => (
+              <div key={rec.id} className="rounded-lg border border-purple-200 bg-purple-50/50 p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="font-medium truncate text-purple-900">{rec.name}</h3>
+                    <p className="text-xs text-purple-600 mt-0.5">
+                      {rec.completions} classmate{rec.completions !== 1 ? "s" : ""} completed this
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+                    onClick={() => router.push(`/student/tracks/${rec.id}`)}
+                  >
+                    Start Track
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
