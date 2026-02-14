@@ -40,12 +40,25 @@ export async function GET(_request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
-    // Only the teacher who owns this class can view details
-    if (classData.teacherId !== session.user.id) {
+    // Teacher who owns the class gets full details (with enrollments)
+    if (classData.teacherId === session.user.id) {
+      return NextResponse.json({ class: classData });
+    }
+
+    // Students enrolled in the class get basic class info (no member emails)
+    const enrollment = await prismaClient.enrollment.findUnique({
+      where: {
+        classId_userId: { classId: id, userId: session.user.id },
+      },
+    });
+
+    if (!enrollment) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json({ class: classData });
+    // Return class info without detailed enrollment data
+    const { enrollments, ...classWithoutMembers } = classData;
+    return NextResponse.json({ class: classWithoutMembers });
   } catch (err) {
     console.error("Get class error:", err);
     return NextResponse.json(

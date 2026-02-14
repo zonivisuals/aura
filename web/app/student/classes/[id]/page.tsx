@@ -1,38 +1,42 @@
 import { getCurrentUser } from "@/lib/auth/rbac";
 import { redirect } from "next/navigation";
-import { TeacherClassesClient } from "./classes-client";
-import Link from "next/link";
+import { StudentClassDetailClient } from "./class-detail-client";
 
-export default async function TeacherDashboard() {
+export default async function StudentClassDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const user = await getCurrentUser();
-
   if (!user?.prismaUser) {
     redirect("/auth/login");
   }
+
+  const { id } = await params;
 
   return (
     <div className="min-h-screen bg-background">
       <nav className="border-b">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-semibold">Teacher Dashboard</h1>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/teacher/profile"
+            <div className="flex items-center gap-3">
+              <a
+                href="/student"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Profile
-              </Link>
-              <span className="text-sm text-muted-foreground">
-                {user.prismaUser.firstName} {user.prismaUser.lastName}
-              </span>
+                ← Back
+              </a>
+              <h1 className="text-xl font-semibold">Class</h1>
             </div>
+            <span className="text-sm text-muted-foreground">
+              {user.prismaUser.firstName} {user.prismaUser.lastName}
+            </span>
           </div>
         </div>
       </nav>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <TeacherClassesClient />
+        <StudentClassDetailClient classId={id} />
       </main>
     </div>
   );

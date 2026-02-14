@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ type Member = {
 };
 
 export function TeacherClassesClient() {
+  const router = useRouter();
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -327,6 +329,13 @@ export function TeacherClassesClient() {
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => startEditing(c)}>
                       Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/teacher/classes/${c.id}`)}
+                    >
+                      Manage
                     </Button>
                     <Button
                       variant="outline"

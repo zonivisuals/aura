@@ -1,7 +1,7 @@
-// Load .env.local for standalone script execution (Next.js does this automatically for the app)
-import { config } from "dotenv";
-config({ path: ".env.local" });
-
+/**
+ * Seed script for test data.
+ * Run: DOTENV_CONFIG_PATH=.env.local npx tsx --require dotenv/config lib/scripts/seed.ts
+ */
 import { prismaClient as prisma } from "../prisma/prisma";
 
 const mockTests = [
