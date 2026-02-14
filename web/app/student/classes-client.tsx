@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ type ClassItem = {
 };
 
 export function StudentClassesClient() {
+  const router = useRouter();
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteCode, setInviteCode] = useState("");
@@ -136,6 +138,13 @@ export function StudentClassesClient() {
                       {c._count.enrollments} student{c._count.enrollments !== 1 ? "s" : ""}
                     </p>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/student/classes/${c.id}`)}
+                  >
+                    View
+                  </Button>
                 </div>
               </div>
             ))}
