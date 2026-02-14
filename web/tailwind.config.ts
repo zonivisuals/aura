@@ -11,7 +11,21 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Plus Jakarta Sans", "sans-serif"],
+        heading: ["var(--font-heading)", "cursive"],
+        body: ["var(--font-body)", "cursive"],
+        sans: ["var(--font-body)", "sans-serif"],
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        wobbly: "255px 15px 225px 15px / 15px 225px 15px 255px",
+        "wobbly-md": "25px 50px 25px 50px / 50px 25px 50px 25px",
+      },
+      boxShadow: {
+        hard: "4px 4px 0px 0px #2d2d2d",
+        "hard-sm": "2px 2px 0px 0px #2d2d2d",
+        "hard-lg": "8px 8px 0px 0px #2d2d2d",
       },
       colors: {
         background: "hsl(var(--background))",
@@ -54,11 +68,6 @@ export default {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
       },
     },
   },

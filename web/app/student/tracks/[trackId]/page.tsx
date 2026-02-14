@@ -9,19 +9,15 @@ export default async function StudentTrackPage({
   const { trackId } = await params;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-background">
-      <Suspense
-        fallback={
-          <div className="container max-w-5xl mx-auto px-4 py-8 space-y-6">
-            <div className="h-20 rounded-xl bg-muted animate-pulse" />
-            <div className="h-[600px] rounded-xl bg-muted animate-pulse" />
-          </div>
-        }
-      >
-        <div className="container max-w-5xl mx-auto px-4 py-8">
-            <StudentTrackClient trackId={trackId} />
+    <Suspense
+      fallback={
+        <div className="space-y-4">
+          <div className="h-16 border-2 border-dashed border-muted-foreground/20 bg-muted animate-pulse" style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }} />
+          <div className="h-[500px] border-2 border-dashed border-muted-foreground/20 bg-muted animate-pulse" style={{ borderRadius: "25px 50px 25px 50px / 50px 25px 50px 25px" }} />
         </div>
-      </Suspense>
-    </div>
+      }
+    >
+      <StudentTrackClient trackId={trackId} />
+    </Suspense>
   );
 }

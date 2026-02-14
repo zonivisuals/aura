@@ -14,14 +14,12 @@ import {
   Menu,
   X,
   BookOpen,
+  Map,
+  GraduationCap,
+  BarChart3,
+  Sparkles,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export interface NavItem {
   href: string;
@@ -41,15 +39,14 @@ interface DashboardLayoutProps {
 }
 
 export const studentNavItems: NavItem[] = [
-  { href: "/student", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/student", label: "Home", icon: LayoutDashboard },
+  { href: "/student/profile", label: "Profile", icon: User },
   { href: "/student/performance", label: "Performance", icon: LineChart },
   { href: "/student/achievements", label: "Achievements", icon: Trophy },
-  { href: "/student/profile", label: "Profile", icon: User },
 ];
 
 export const teacherNavItems: NavItem[] = [
-  { href: "/teacher", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/teacher/classes", label: "Classes", icon: BookOpen },
+  { href: "/teacher", label: "Home", icon: LayoutDashboard },
   { href: "/teacher/profile", label: "Profile", icon: User },
 ];
 
@@ -61,101 +58,154 @@ export function DashboardLayout({
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row font-sans">
-      {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b bg-card">
-        <div className="font-bold text-xl text-primary">Aura</div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
-      </div>
+  const isActive = (href: string) => {
+    if (href === "/student" || href === "/teacher") return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
-      {/* Sidebar Overlay (Mobile) */}
+  return (
+    <div className="min-h-screen bg-background font-body">
+      {/* ═══════════════════════════════════════════ */}
+      {/* Top Bar — Hand-drawn style                  */}
+      {/* ═══════════════════════════════════════════ */}
+      <header
+        className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b-[3px] border-foreground"
+      >
+        <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link href={user.role === "teacher" ? "/teacher" : "/student"} className="flex items-center gap-2 group">
+            <div
+              className="w-10 h-10 bg-primary text-primary-foreground font-heading text-xl font-bold flex items-center justify-center border-[3px] border-foreground shadow-[3px_3px_0px_0px_#2d2d2d] group-hover:shadow-[1px_1px_0px_0px_#2d2d2d] group-hover:translate-x-[2px] group-hover:translate-y-[2px] transition-all duration-100"
+              style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }}
+            >
+              A
+            </div>
+            <span className="font-heading text-2xl text-foreground hidden sm:inline">Aura</span>
+          </Link>
+
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 text-sm font-heading font-bold transition-all duration-100 border-[2px]",
+                    active
+                      ? "bg-primary text-primary-foreground border-foreground shadow-[3px_3px_0px_0px_#2d2d2d]"
+                      : "bg-transparent text-muted-foreground border-transparent hover:border-foreground hover:bg-secondary hover:text-foreground hover:shadow-[2px_2px_0px_0px_#2d2d2d]"
+                  )}
+                  style={{ borderRadius: "25px 50px 25px 50px / 50px 25px 50px 25px" }}
+                >
+                  <Icon className="h-4 w-4" strokeWidth={2.5} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right Section: User + Mobile Toggle */}
+          <div className="flex items-center gap-3">
+            {/* User Pill */}
+            <div
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 border-2 border-foreground bg-secondary shadow-[2px_2px_0px_0px_#2d2d2d]"
+              style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }}
+            >
+              <div
+                className="w-7 h-7 bg-accent text-accent-foreground flex items-center justify-center font-heading text-xs font-bold border-2 border-foreground"
+                style={{ borderRadius: "15px 225px 15px 255px / 225px 15px 255px 15px" }}
+              >
+                {user.firstName[0]}
+              </div>
+              <span className="text-sm font-heading font-bold text-foreground truncate max-w-[100px]">
+                {user.firstName}
+              </span>
+            </div>
+
+            {/* Sign Out */}
+            <button
+              onClick={() => signOut({ callbackUrl: "/auth/login" })}
+              className="p-2 text-muted-foreground hover:text-accent hover:bg-accent/10 rounded-full transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+
+            {/* Mobile Menu Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* Mobile Nav Dropdown                         */}
+      {/* ═══════════════════════════════════════════ */}
       {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <div
+            className="fixed top-16 left-4 right-4 z-50 md:hidden bg-background border-[3px] border-foreground shadow-[6px_6px_0px_0px_#2d2d2d] p-4 space-y-2"
+            style={{ borderRadius: "25px 50px 25px 50px / 50px 25px 50px 25px" }}
+          >
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 font-heading font-bold border-2 transition-all",
+                    active
+                      ? "bg-primary text-primary-foreground border-foreground shadow-[2px_2px_0px_0px_#2d2d2d]"
+                      : "border-transparent text-muted-foreground hover:bg-secondary hover:border-foreground"
+                  )}
+                  style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }}
+                >
+                  <Icon className="h-5 w-5" strokeWidth={2.5} />
+                  {item.label}
+                </Link>
+              );
+            })}
+            {/* Mobile user info */}
+            <div className="pt-2 mt-2 border-t-2 border-dashed border-muted flex items-center gap-3 px-4 py-2">
+              <div
+                className="w-8 h-8 bg-accent text-accent-foreground flex items-center justify-center font-heading font-bold border-2 border-foreground"
+                style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }}
+              >
+                {user.firstName[0]}
+              </div>
+              <div>
+                <p className="font-heading font-bold text-sm">{user.firstName} {user.lastName}</p>
+                <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r shadow-sm transition-transform duration-200 md:relative md:translate-x-0 flex flex-col",
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="h-16 flex items-center px-6 border-b">
-          <span className="font-bold text-2xl text-primary tracking-tight">Aura</span>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-primary/10 text-primary hover:bg-primary/15"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t bg-muted/30">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start px-2 hover:bg-background">
-                <div className="flex items-center gap-3 text-left">
-                  <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                    {user.firstName[0]}
-                  </div>
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium truncate">
-                      {user.firstName} {user.lastName}
-                    </p>
-                    <p className="text-xs text-muted-foreground capitalize truncate">
-                      {user.role}
-                    </p>
-                  </div>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem 
-                  className="text-destructive focus:text-destructive cursor-pointer" 
-                  onClick={() => signOut({ callbackUrl: "/auth/login" })}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-         {/* Top bar for desktop could go here if needed, but sidebar covers nav */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-           <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {children}
-           </div>
+      {/* ═══════════════════════════════════════════ */}
+      {/* Main Content                                */}
+      {/* ═══════════════════════════════════════════ */}
+      <main className="flex-1 min-h-[calc(100vh-4rem)]">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {children}
+          </div>
         </div>
       </main>
     </div>

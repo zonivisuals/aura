@@ -4,52 +4,52 @@
 
 @layer base {
   :root {
-    /* Base - Cool White/Gray */
-    --background: 210 20% 98%;
-    --foreground: 220 15% 10%;
+    /* Base - Warm Paper */
+    --background: 35 30% 98%; /* #fdfbf7 */
+    --foreground: 0 0% 18%;   /* #2d2d2d */
 
     /* Card - Pure White */
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 10%;
+    --card-foreground: 0 0% 18%;
     
     /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 10%;
+    --popover-foreground: 0 0% 18%;
 
-    /* Primary - Google Blue #4285F4 */
-    --primary: 217 89% 61%;
+    /* Primary - Blue Ballpoint Pen #2d5da1 */
+    --primary: 215 56% 40%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Light Gray Blue */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    /* Secondary - Light Muted Paper */
+    --secondary: 40 21% 94%;
+    --secondary-foreground: 0 0% 18%;
 
-    /* Muted */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Muted - Old Paper */
+    --muted: 40 21% 87%;
+    --muted-foreground: 0 0% 40%;
 
-    /* Accent */
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    /* Accent - Correction Red */
+    --accent: 0 100% 65%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Destructive - Google Red #DB4437 */
-    --destructive: 5 69% 54%;
-    --destructive-foreground: 0 0% 98%;
+    /* Destructive - Same as Accent */
+    --destructive: 0 100% 65%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Border/Input */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 89% 61%;
+    /* Border/Input - Pencil Lead */
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 215 56% 40%;
 
-    /* Radius */
-    --radius: 0.75rem;
+    /* Radius - Wobbly */
+    --radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
 
-    /* Charts */
-    --chart-1: 217 89% 61%; /* Blue */
-    --chart-2: 151 83% 34%; /* Green #0F9D58 */
-    --chart-3: 5 69% 54%;   /* Red */
-    --chart-4: 44 91% 48%;  /* Yellow #F4B400 */
-    --chart-5: 27 87% 67%; 
+    /* Charts (adjusted to match palette) */
+    --chart-1: 215 56% 40%;
+    --chart-2: 0 100% 65%;
+    --chart-3: 40 21% 87%;
+    --chart-4: 0 0% 18%;
+    --chart-5: 35 30% 98%; 
 
     /* Sidebar specific variables for app layout */
     --sidebar-background: 0 0% 100%;

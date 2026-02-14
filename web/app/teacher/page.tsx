@@ -11,7 +11,7 @@ export default async function TeacherDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+      <h1 className="font-heading text-3xl md:text-4xl text-foreground">My Classes 📚</h1>
       <TeacherClassesClient />
     </div>
   );

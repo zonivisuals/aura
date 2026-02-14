@@ -113,7 +113,7 @@ export function TeacherAnalyticsClient({ classId }: { classId: string }) {
     return dir * (a.totalXp - b.totalXp);
   });
 
-  const toggleSort = (col: typeof sortBy) => {
+  const handleSort = (col: typeof sortBy) => {
     if (sortBy === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
       setSortBy(col);
@@ -346,7 +346,7 @@ export function TeacherAnalyticsClient({ classId }: { classId: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {sortedStudents.map((s) => {
+                {sorted.map((s) => {
                   const isAtRisk = atRiskStudents.some(r => r.id === s.id);
                   return (
                     <tr key={s.id} className="hover:bg-muted/50 transition-colors group">

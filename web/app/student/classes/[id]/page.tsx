@@ -19,10 +19,14 @@ export default async function StudentClassDetailPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/student" className="p-2 -ml-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-5 w-5" />
+        <Link
+          href="/student"
+          className="p-2 -ml-2 border-2 border-transparent hover:border-foreground hover:bg-secondary hover:shadow-[2px_2px_0px_0px_#2d2d2d] transition-all duration-100 text-muted-foreground hover:text-foreground"
+          style={{ borderRadius: "255px 15px 225px 15px / 15px 225px 15px 255px" }}
+        >
+          <ArrowLeft className="h-5 w-5" strokeWidth={2.5} />
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Class Analysis</h1>
+        <h1 className="font-heading text-2xl md:text-3xl">Class Details 📝</h1>
       </div>
       <StudentClassDetailClient classId={id} />
     </div>
