@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth/auth";
 import { prismaClient } from "@/lib/prisma/prisma";
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { processLessonCompletion, updateStreakOnActivity } from "@/lib/gamification";
 
 type RouteParams = { params: Promise<{ lessonId: string }> };
 
@@ -115,9 +116,9 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     });
 
-    // If correct and not already completed → create completion + award XP
+    // If correct and not already completed → create completion + run gamification
     let completion = null;
-    let xpAwarded = 0;
+    let gamification = null;
 
     if (isCorrect) {
       const existingCompletion = await prismaClient.lessonCompletion.findUnique({
@@ -140,26 +141,17 @@ export async function POST(request: Request, { params }: RouteParams) {
           },
         });
 
-        xpAwarded = lesson.xpReward;
-
-        // Update student attributes (XP, lessons completed)
-        await prismaClient.studentAttribute.upsert({
-          where: { userId_classId: { userId: session.user.id, classId } },
-          create: {
-            id: randomUUID(),
-            userId: session.user.id,
-            classId,
-            totalXp: xpAwarded,
-            lessonsCompleted: 1,
-            lastActivityDate: new Date(),
-          },
-          update: {
-            totalXp: { increment: xpAwarded },
-            lessonsCompleted: { increment: 1 },
-            lastActivityDate: new Date(),
-          },
-        });
+        // Process gamification: XP, level, streak, achievements
+        gamification = await processLessonCompletion(
+          session.user.id,
+          classId,
+          lesson.xpReward,
+          score
+        );
       }
+    } else {
+      // Even incorrect attempts update streak (activity tracking)
+      await updateStreakOnActivity(session.user.id, classId);
     }
 
     // Build explanation for feedback
@@ -172,7 +164,22 @@ export async function POST(request: Request, { params }: RouteParams) {
         score,
         identifiedWeaknesses,
       },
-      completion: completion ? { id: completion.id, xpAwarded } : null,
+      completion: completion
+        ? {
+            id: completion.id,
+            xpAwarded: gamification?.xpAwarded ?? 0,
+          }
+        : null,
+      gamification: gamification
+        ? {
+            newLevel: gamification.newLevel,
+            previousLevel: gamification.previousLevel,
+            leveledUp: gamification.leveledUp,
+            currentStreak: gamification.currentStreak,
+            longestStreak: gamification.longestStreak,
+            newAchievements: gamification.newAchievements,
+          }
+        : null,
       explanation,
     });
   } catch (err) {

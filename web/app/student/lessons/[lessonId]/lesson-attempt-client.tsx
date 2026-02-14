@@ -23,6 +23,22 @@ type LessonContent = {
   keywords?: string[];
 };
 
+type AchievementInfo = {
+  id: string;
+  name: string;
+  description: string;
+  iconUrl: string | null;
+};
+
+type GamificationResult = {
+  newLevel: number;
+  previousLevel: number;
+  leveledUp: boolean;
+  currentStreak: number;
+  longestStreak: number;
+  newAchievements: AchievementInfo[];
+};
+
 type AttemptResult = {
   attempt: {
     id: string;
@@ -31,6 +47,7 @@ type AttemptResult = {
     identifiedWeaknesses: string[];
   };
   completion: { id: string; xpAwarded: number } | null;
+  gamification: GamificationResult | null;
   explanation: string | null;
 };
 
@@ -176,7 +193,7 @@ export function LessonAttemptClient({ lessonId }: { lessonId: string }) {
   // ───── Result View ─────
 
   if (result) {
-    const { attempt, completion, explanation } = result;
+    const { attempt, completion, gamification, explanation } = result;
 
     return (
       <div className="space-y-6">
@@ -201,6 +218,53 @@ export function LessonAttemptClient({ lessonId }: { lessonId: string }) {
             </p>
           )}
         </div>
+
+        {/* Level Up Celebration */}
+        {gamification?.leveledUp && (
+          <div className="rounded-lg border-2 border-amber-300 bg-amber-50 p-5 text-center space-y-2">
+            <p className="text-3xl">🏆</p>
+            <h3 className="text-lg font-bold text-amber-800">Level Up!</h3>
+            <p className="text-sm text-amber-700">
+              Level {gamification.previousLevel} → Level {gamification.newLevel}
+            </p>
+          </div>
+        )}
+
+        {/* Streak */}
+        {gamification && gamification.currentStreak > 0 && (
+          <div className="flex items-center justify-center gap-2 py-2">
+            <span className="text-lg">🔥</span>
+            <span className="text-sm font-medium">
+              {gamification.currentStreak} day streak
+              {gamification.currentStreak >= gamification.longestStreak &&
+                gamification.currentStreak > 1 &&
+                " — New record!"}
+            </span>
+          </div>
+        )}
+
+        {/* New Achievements */}
+        {gamification?.newAchievements && gamification.newAchievements.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide text-center">
+              New Achievements Unlocked
+            </p>
+            <div className="space-y-2">
+              {gamification.newAchievements.map((ach) => (
+                <div
+                  key={ach.id}
+                  className="flex items-center gap-3 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3"
+                >
+                  <span className="text-2xl shrink-0">{ach.iconUrl ?? "🏅"}</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-purple-900">{ach.name}</p>
+                    <p className="text-xs text-purple-700">{ach.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Explanation */}
         {explanation && (

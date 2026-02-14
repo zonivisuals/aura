@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { LeaderboardPanel } from "@/components/leaderboard-panel";
 import Link from "next/link";
 
 // ───── Types ─────
@@ -322,6 +323,13 @@ export function StudentClassDetailClient({ classId }: { classId: string }) {
             ))}
           </div>
         )}
+      </div>
+      {/* Leaderboard Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Leaderboard</h3>
+        <div className="rounded-lg border p-4">
+          <LeaderboardPanel classId={classId} />
+        </div>
       </div>
     </div>
   );
